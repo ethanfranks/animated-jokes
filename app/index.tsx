@@ -15,11 +15,17 @@ export default function Index() {
         const res = await fetch(
           "https://official-joke-api.appspot.com/random_joke"
         );
-        const data = JokeSchema.parse(await res.json());
-        setJoke(data);
+        const data = await res.json();
+
+        if (data.type === "error") {
+          throw new Error(data.message);
+        } else {
+          const parsedData = JokeSchema.parse(data);
+          setJoke(parsedData);
+        }
       } catch (e) {
         console.log(e);
-        setErrorMessage(`Oops... something went wrong fetching joke.`);
+        setErrorMessage(`Oops... something went wrong fetching your joke.`);
       }
     }
 
@@ -32,7 +38,9 @@ export default function Index() {
 
   return (
     <View style={styles.container} onLayout={onLayoutRootView}>
-      {errorMessage && <Text>{errorMessage}</Text>}
+      {errorMessage && (
+        <Text style={[styles.textCard, styles.error]}>{errorMessage}</Text>
+      )}
       {joke && (
         <>
           <Text style={styles.textCard}>{joke.setup}</Text>
@@ -61,5 +69,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 15,
     boxShadow: "6px 6px 2px 1px #7EBDC2",
+  },
+  error: {
+    boxShadow: "6px 6px 2px 1px #BB4430",
   },
 });
