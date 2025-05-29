@@ -7,4 +7,7 @@ export const JokeSchema = z.object({
   punchline: z.string(),
 });
 
+export const JokeListSchema = z.array(JokeSchema);
+
 export type Joke = z.infer<typeof JokeSchema>;
+export type JokeList = z.infer<typeof JokeListSchema>;

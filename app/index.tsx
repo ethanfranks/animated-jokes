@@ -1,27 +1,32 @@
-import { Joke, JokeSchema } from "@/constants/schemas";
+import TextCard from "@/components/TextCard";
+import { Joke, JokeListSchema } from "@/constants/schemas";
+import { Ionicons } from "@expo/vector-icons";
 import { SplashScreen } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function Index() {
   SplashScreen.preventAutoHideAsync();
 
-  const [joke, setJoke] = useState<Joke | null>(null);
+  const insets = useSafeAreaInsets();
+  const [jokes, setJokes] = useState<Joke[] | null>(null);
+  const [currentJokeIndex, setCurrentJokeIndex] = useState<number>(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchJoke() {
       try {
         const res = await fetch(
-          "https://official-joke-api.appspot.com/random_joke"
+          "https://official-joke-api.appspot.com/jokes/general/ten"
         );
         const data = await res.json();
 
         if (data.type === "error") {
           throw new Error(data.message);
         } else {
-          const parsedData = JokeSchema.parse(data);
-          setJoke(parsedData);
+          const parsedData = JokeListSchema.parse(data);
+          setJokes(parsedData);
         }
       } catch (e) {
         console.log(e);
@@ -33,20 +38,42 @@ export default function Index() {
   }, []);
 
   const onLayoutRootView = useCallback(() => {
-    if (joke || errorMessage) SplashScreen.hide();
-  }, [joke, errorMessage]);
+    if (jokes || errorMessage) SplashScreen.hide();
+  }, [jokes, errorMessage]);
+
+  const handleNext = useCallback(() => {
+    if (jokes && currentJokeIndex < jokes?.length - 1)
+      setCurrentJokeIndex((prevInd) => prevInd + 1);
+  }, [currentJokeIndex, jokes]);
+
+  const JokeCard = useCallback(({ joke }: { joke: Joke }) => {
+    return (
+      <>
+        <TextCard text={joke.setup} />
+        <TextCard text={joke.punchline} animatedTimeout={4000} />
+      </>
+    );
+  }, []);
 
   return (
     <View style={styles.container} onLayout={onLayoutRootView}>
-      {errorMessage && (
-        <Text style={[styles.textCard, styles.error]}>{errorMessage}</Text>
-      )}
-      {joke && (
-        <>
-          <Text style={styles.textCard}>{joke.setup}</Text>
-          <Text style={styles.textCard}>{joke.punchline}</Text>
-        </>
-      )}
+      {errorMessage && <TextCard text={errorMessage} type="error" />}
+      {jokes && <JokeCard joke={jokes[currentJokeIndex]} />}
+      <TouchableOpacity
+        hitSlop={20}
+        style={{
+          position: "absolute",
+          bottom: insets.bottom,
+          right: insets.right,
+        }}
+      >
+        <Ionicons
+          name="arrow-forward-circle"
+          size={40}
+          color="#FFA737"
+          onPress={handleNext}
+        />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -58,19 +85,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 20,
     margin: 20,
-  },
-  textCard: {
-    width: "100%",
-    fontSize: 18,
-    fontWeight: "500",
-    backgroundColor: "#ffffff",
-    padding: 20,
-    borderColor: "#000000",
-    borderWidth: 1,
-    borderRadius: 15,
-    boxShadow: "6px 6px 2px 1px #7EBDC2",
-  },
-  error: {
-    boxShadow: "6px 6px 2px 1px #BB4430",
   },
 });
